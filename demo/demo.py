@@ -13,6 +13,8 @@ sys.path.append(str(main_proj_path))
 from src.tagger import ImageRelTagger
 from src.models import IRT_Image, IRT_Node
 
+show_image_nodes = True
+
 def get_img_at_path(path):
     im= Image.open(path)
     (x, y) = im.size
@@ -34,26 +36,35 @@ def display_some_images_w_relations():
     
     images = [image1, image2, image3]
     graph = nx.DiGraph()
+    nodes_dict = {}
     
     for img in images:
         img_shape = img.image.shape[:2]
         nodes = []
+        if show_image_nodes:
+            img_node = IRT_Node(img.name, img.name, xy=(0,0))
+            nodes.append(img_node)
         for i in range(random.randint(3, 10)):
             coors = gen_2d_coordinates(0, img_shape[1]-1, 0, img_shape[0]-1)
             nodes.append(IRT_Node(f"{img.name}_{i}", img.name, xy=coors))
         
+        nodes_dict.update({node.name: node for node in nodes})
+        if show_image_nodes: nodes.remove(img_node)
         # order nodes
-        prev_parents = [img.name]
+        parent_nodes = [img]
         while nodes:
             successor_nodes = random.sample(nodes, random.randint(1, len(nodes)))
             for node in successor_nodes:
                 nodes.remove(node)
             for node in successor_nodes:
-                graph.add_edge(prev_parents[random.randint(0, len(prev_parents) - 1)],
-                               node)
-            prev_parents = successor_nodes
+                graph.add_edge(parent_nodes[random.randint(0, len(parent_nodes) - 1)].name,
+                               node.name)
+            parent_nodes = successor_nodes
         
-    irt = ImageRelTagger(images=images, graph=graph, wh_reserved_per_img=(600,400))
+    irt = ImageRelTagger(images=images, nodes=nodes_dict, graph=graph,
+                         wh_reserved_per_img=(600,400),
+                         show_image_nodes=show_image_nodes,
+                         display_on_h=True)
     irt.display()
 
 
